@@ -1,0 +1,28 @@
+{
+  "name": "plotly_merc",
+  "version": "1.0.0",
+  "description": "Mercator app for RNA-seq map",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bower": "^1.8.0"
+  },
+  "devDependencies": {
+    "gulp": "^3.9.1",
+    "gulp-rename": "^1.2.2",
+    "gulp-uglify": "^3.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SuLab/Mercator.git"
+  },
+  "bugs": {
+    "url": "https://github.com/SuLab/Mercator/issues"
+  },
+  "homepage": "https://github.com/SuLab/Mercator#readme"
+}

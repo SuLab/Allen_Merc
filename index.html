@@ -1,0 +1,140 @@
+<html ng-app="mercatorApp">
+  <head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.4/angular.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.0/angular-sanitize.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.2.1/jstree.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.0.5/handlebars.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/corejs-typeahead/0.11.1/typeahead.bundle.min.js"></script>
+    <!-- <script src="src/js/selectize.min.js"></script> -->
+    <!-- <link rel="stylesheet" type="text/css" href="bower_components/selectize/dist/css/selectize.css"/> -->
+    <!-- <script src="https://cdn.plot.ly/plotly-latest.min.js"></script> -->
+    <script src="bower_components/plotly.js/dist/plotly.js"></script>
+    <script src="bower_components/angular-plotly/src/angular-plotly.js"></script>
+    <!-- <script src="bower_components/ui-bootstrap/index.js"></script> -->
+    <script src="//angular-ui.github.io/bootstrap/ui-bootstrap-tpls-2.5.0.js"></script>
+    <script src="node_modules/ui-select/dist/select.min.js"></script>
+    <script src="node_modules/ols-autocomplete/build/ols-autocomplete.js"></script>
+    <!-- <script src="node_modules/ui-bootstrap/index.js"></script> -->
+    <!-- <script src="node_modules/ols-treeview/build/ols-treeview.min.js"></script> -->
+    <script src="src/js/app.js"></script>
+    <link rel="stylesheet" type="text/css" href="node_modules/ui-select/dist/select.css"/>
+    <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.2.1/themes/default/style.min.css" />
+    <script type="text/ng-template" id="customGeneTemplate.html">
+      <a>
+	<span ng-bind-html="match.model.id | uibTypeaheadHighlight:query"></span>, 
+	<span ng-bind-html="match.model.symbol | uibTypeaheadHighlight:query"></span>
+      </a>
+    </script>
+  </head>
+  <body id="top" ng-controller="plotController as ctrl">
+    <div>
+      <plotly plotly-data="traces" plotly-layout="tsneLayout" plotly-options="options" plotly-events="plotlyEvents"></plotly>
+    </div>
+    <div>
+      <plotly plotly-data="geneTrace" plotly-layout="violinLayout" plotly-options="violinOptions" ></plotly>
+    </div>
+    <div class="demo">
+      <h2>Color selection</h2>
+      <div class="control-group">
+	<!-- <div class="buttons"> -->
+	<!--   <color-button ng-click="ctrl.colorize()" type="button" value="Color!" id="color-button"></color-button> -->
+	<!-- </div> -->
+	<!-- <color-select id="select-groups" style="width=50%" multiple ng-model="trace_fields" placeholder="Select attributes to color by..."></color-select> -->
+	<ui-select multiple ng-model="trace_select.fields" theme="bootstrap" style="min-width: 300px;" title="Choose an attribute">
+	  <ui-select-match placeholder="Select attributes to color by...">{{$item.title}}</ui-select-match>
+	  <ui-select-choices repeat="item in attributeOptions">
+	    <div ng-bind-html="item.title | highlight: $select.search"></div>
+	  </ui-select-choices>
+	</ui-select>
+	</br>
+	<color-button type="button" value="Colorize" ng-click="colorize()"></color-button>
+	</br>
+	<h4>Gene Coloring</h4>
+	<input type="text" ng-model="geneSelected" placeholder="Color by mouse gene ID or symbol" uib-typeahead="gene as gene.symbol for gene in getGenes($viewValue)" typeahead-loading="loadingGenes" typeahead-no-results="noResults" typeahead-min-length="3" typeahead-template-url="customGeneTemplate.html" typeahead-on-select="selectGene($item,$model,$label)">
+	<i ng-show="loadingGenes" class="glyphicon glyphicon-refresh"></i>
+	<div ng-show="noResults">
+	  <i class="glyphicon glyphicon-remove"></i> No results found
+	</div>
+        </br>
+
+	<h4>Violin Controls</h4>
+	X-values: </br>
+	<div class="btn-group">
+          <label class="btn btn-primary" ng-model="violinXgroup" uib-btn-radio="'Cluster'">Cluster</label>
+          <label class="btn btn-primary" ng-model="violinXgroup" uib-btn-radio="'Metadata'">Metadata</label>
+	</div>
+	</br>
+	Y-values: </br>
+	<div class="btn-group">
+	  <label class="btn btn-primary" ng-model="violinYgroup" uib-btn-radio="'Gene'">Gene Values</label>
+	  <label class="btn btn-primary" ng-model="violinYgroup" uib-btn-radio="'samp-dist'">Sample Distance</label>
+	</div>
+	</br>
+	<button id="violinUpdate" type="button" class="btn btn-primary" ng-click="violinClick()" ng-disabled="violinDisabled">{{ violin_status }}</button>
+
+	<dist-button id="geneButton" value="{{ gene_color_status }}" ng-click="markerClick(geneValues)" disabled></dist-button>
+	  
+	<!-- <ui-select multiple ng-model="gene_color" theme="bootstrap" style="min-width: 300px;" title="Choose a gene" typeahead-min-length="5"> -->
+	<!--   <ui-select-match placeholder="Select gene to color by...">{{$item.title}}</ui-select-match> -->
+	<!--   <ui-select-choices repeat="item in geneOptions"> -->
+	<!--     <div ng-bind-html="item.title | highlight: $select.search"></div> -->
+	<!--   </ui-select-choices> -->
+	<!-- </ui-select> -->
+	</br>
+	<file-input data-storage="euclid_pca_trace" data-status="euclid_pca_status" data-url="http://localhost:3000/euclid_pca" id="euclid-color-input"></file-input>
+	<br>
+	<dist-button id="pcaButton" value="{{ euclid_pca_status }}" ng-click="markerClick(euclid_pca_trace)" disabled></dist-button>
+      </div>
+      <div id="group-list">
+	<form ng-submit="addGroup()" id="groupForm">
+	  <input type="text" ng-model="inputGroupName" size="30" placeholder="Add selected group">
+	  <input id="addSelectionInput" type="submit" value="Add Group" disabled>
+	</form>
+	<div ng-repeat="x in groupList">
+	  <input type="checkbox" ng-model="x.marked"><span ng-bind="x.groupLabel"></span><input type="button" value="X" ng-click="removeGroup(x.id)">
+	</div>
+      </div>
+      <div>
+      </div>
+    </div>
+    <!-- <form filter-input ng-submit="addFilter()" id="filterForm"> -->
+    <!--   <input multiple id="filter-select-field" style="width=50%" placeholder="Field" ng-model="field_select" required></input> -->
+    <!--   <input multiple id="filter-select-value" style="width=50%" placeholder="Value" ng-model="value_select" required></input> -->
+    <!--   <input multiple id="filter-select-action" style="width=50%" placeholder="Action" ng-model="action_select" required></input> -->
+    <!--   <input id="filterSubmit" type="submit" value="Add Filter"> -->
+    <!-- </form> -->
+
+
+    <form filter-input ng-submit="addFilter()" id="filterForm">
+      <ui-select ng-model="filter_select.field" theme="bootstrap" style="max-width: 140px;" title="Choose an attribute">
+	<ui-select-match placeholder="Field">{{$select.selected.title}}</ui-select-match>
+	<ui-select-choices repeat="val in attributeOptions">
+	  <div ng-bind-html="val.title | highlight: $select.search"></div>
+	</ui-select-choices>
+      </ui-select>
+
+      <ui-select multiple ng-disabled="valueSelectDisabled" ng-model="filter_select.value" theme="bootstrap" style="max-width: 140px;" title="Choose a value">
+	<ui-select-match placeholder="Value">{{$item}}</ui-select-match>
+	<ui-select-choices repeat="item in valueOptions">
+	  <div ng-bind-html="item | highlight: $select.search"></div>
+	</ui-select-choices>
+      </ui-select>
+
+      <ui-select ng-model="filter_select.action" theme="bootstrap" style="max-width: 140px;" title="Choose a filter"></input>
+	<ui-select-match placeholder="Filter">{{$select.selected.title}}</ui-select-match>
+	<ui-select-choices repeat="item in filterOptions">
+	  <div ng-bind-html="item.title | highlight: $select.search"></div>
+	</ui-select-choices>
+      </ui-select>
+
+      <input id="filterSubmit" type="submit" value="Add Filter">
+    </form>
+
+    <div ng-repeat="x in filterList">
+      <span ng-bind="x.filterLabel"></span><input type="checkbox" ng-model="x.marked"><input type="button" value="X" ng-click="removeFilter(x.id)">
+    </div>
+    <input type="button" value="Apply filters" ng-click="filterData()">
+  </body>
+</html>

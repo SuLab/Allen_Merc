@@ -1,0 +1,36 @@
+[{
+    "id" : "1",
+    "parent" : "#",
+    "iri" : "http://purl.obolibrary.org/obo/UBERON_0001062",
+    "text" : "anatomical entity",
+    "state" : {
+	"opened" : false,
+	"selected" : false
+    },
+    "children" : true,
+    "a_attr" : {
+	"iri" : "http://purl.obolibrary.org/obo/UBERON_0001062",
+	"ontology_name" : "uberon",
+	"title" : "http://purl.obolibrary.org/obo/UBERON_0001062",
+	"class" : "is_a"
+    },
+    "ontology_name" : "uberon"
+},
+ {
+     "id" : "2",
+     "parent" : "#",
+     "iri" : "http://purl.obolibrary.org/obo/UBERON_0000000",
+     "text" : "processual entity",
+     "state" : {
+	 "opened" : false,
+	 "selected" : false
+     },
+     "children" : true,
+     "a_attr" : {
+	 "iri" : "http://purl.obolibrary.org/obo/UBERON_0000000",
+	 "ontology_name" : "uberon",
+	 "title" : "http://purl.obolibrary.org/obo/UBERON_0000000",
+	 "class" : "is_a"
+     },
+     "ontology_name" : "uberon"
+ }]
