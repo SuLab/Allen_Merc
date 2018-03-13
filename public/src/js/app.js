@@ -94,9 +94,12 @@ angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocomplete
 
 		else{
 		    traces = [];
-		    // return single string traceName that defines name of trace for a given entry line and fields traceFields
-		    function createTraceName(line,traceFields) {
-			var fields=traceFields.map(function(entry) {return line[entry];});
+
+		    traceIDs = traceFields.map((entry) => {return entry.id;});
+
+		    // return single string traceName that defines name of trace for a given entry line and fields traceIDs
+		    function createTraceName(line,traceIDs) {
+			var fields=traceIDs.map(function(entry) {return line[entry];});
 			var traceName = "";
 			fields.forEach((entry) => {traceName=traceName.concat(entry," ");});
 			return traceName;
@@ -105,7 +108,7 @@ angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocomplete
 		    // create array of promises of traceNames (might be overkill?)
 		    let nameProcessing = data.map(line => {
 		    	return $q((resolve,reject) => {
-		    	    traceName = createTraceName(line,traceFields);
+		    	    traceName = createTraceName(line,traceIDs);
 		    	    line.traceName = traceName;
 		    	    traceNames.add(traceName);
 		    	    resolve();
@@ -174,6 +177,11 @@ angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocomplete
 	$scope.gene_color_status="Waiting for gene selection";
 	$scope.violin_status = $scope.gene_color_status;
 
+	$scope.tsneDisabled = false;
+	$scope.tsne_status = "Color by Metadata";
+	$scope.tsneColor = "metadata";
+
+	$scope.euclid_pca_status="Waiting for file";
 
 	$scope.valueSelectDisabled=true;
 
@@ -201,7 +209,34 @@ angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocomplete
 		});
 	};
 
-	$scope.violinTrace = function(data,colorHash,traceObjs,yLabel) {
+	$scope.markerTrace = function(colorHash)	{
+	    var deferred = $q.defer();
+	    var colorVec = [];
+	    for(i=0; i<$scope.filteredData.length; i++){
+		colorVec.push(parseFloat(colorHash[$scope.filteredData[i]['rnaseq_profile_id']]));
+	    }
+
+	    if(i===$scope.filteredData.length){
+
+		deferred.resolve([{
+		    mode: 'markers',
+		    name: 'test',
+		    x: plotData.unpack($scope.filteredData,'y1'),
+		    y: plotData.unpack($scope.filteredData,'y2'),
+		    text: colorVec,
+		    type: 'scattergl',
+		    hoverinfo: 'text',
+		    marker: {
+			color: colorVec,
+			showscale: true
+		    }
+		}]);
+	    }
+	    return deferred.promise;
+	};
+
+	
+	$scope.makeViolinTrace = function(data,colorHash,traceObjs,yLabel) {
 	    colorVec = [];
 	    clustVec = [];
 	    var deferred = $q.defer();
@@ -371,17 +406,110 @@ angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocomplete
 
 	$scope.violinClick = function() {
 	    // $scope.violinClick = function(geneHash) {
-	    if(!$scope.trace_select_fields){
+	    if(!$scope.trace_select.fields){
 		traceSelect = [];
+	    }
+	    else{
+		traceSelect = $scope.trace_select.fields;
 	    }
 	    traceArray = (($scope.violinXgroup == 'Cluster') ? [{id: 'louvain_k30', title: 'Louvain k=30'}] : traceSelect);
 	    geneHash = (($scope.violinYgroup == 'Gene') ? $scope.geneValues : $scope.euclid_pca_trace);
 	    yLabel = (($scope.violinYgroup == 'Gene') ? $scope.geneSelected.symbol : 'Sample Dissimilarity');
-	    $scope.violinTrace($scope.filteredData,geneHash,traceArray,yLabel)
+	    $scope.makeViolinTrace($scope.filteredData,geneHash,traceArray,yLabel)
 		.then((response) => {
-		    $scope.geneTrace = response;
+		    $scope.violinTrace = response;
 		});
 	};
+
+	$scope.tsneClick = function() {
+	    // if(!$scope.trace_select_fields){
+	    // 	traceSelect = [];
+	    // }
+	    // else{
+	    // 	traceSelect = $scope.trace_select_fields;
+	    // }
+	    switch($scope.tsneColor){
+	    case 'cluster':
+		$scope.tsneLayout.title = 'Louvain k=30';
+		plotData.buildTraces($scope.filteredData,[{id: 'louvain_k30',title: 'Louvain k=30'}])
+		    .then((result) => {
+			$scope.tsneTraces=result;
+		    });
+		break;
+	    case 'metadata':
+		title = '';
+		$scope.trace_select.fields.forEach((entry) => {title=title.concat(entry.title,' ');});
+		title=title.substr(0,title.length-1);
+		$scope.tsneLayout.title = title;
+		plotData.buildTraces($scope.filteredData,$scope.trace_select.fields)
+		    .then((result) => {
+			$scope.tsneTraces=result;
+		    });
+		break;
+	    case 'gene':
+		$scope.markerTrace($scope.geneValues).
+		    then((result) => {
+			$scope.tsneLayout.title = $scope.geneSelected.symbol;
+			$scope.tsneTraces=result;
+		    });
+		break;
+	    case 'samp-dist':
+		$scope.markerTrace($scope.euclid_pca_trace)
+		    .then((result) => {
+			$scope.tsneLayout.title = 'Sample Dissimilarity';
+			$scope.tsneTraces=result;
+		    });
+		break;
+	    }
+	    // $scope.markerTrace(colorHash)
+	    // 	.then((response) => {
+	    // 	    $scope.traces = response;
+	    // 	});
+	};
+	
+	$scope.$watch(
+	    function($scope) {
+		return $scope.tsneColor;
+	    },
+	    function(newValue, oldValue){
+		if(newValue != oldValue){
+		    switch(newValue){
+		    case 'cluster':
+			$scope.tsne_status = 'Color by Cluster';
+			$scope.tsneDisabled = false;
+			break;
+			
+		    case 'metadata': 
+			$scope.tsne_status = 'Color by Metadata';
+			$scope.tsneDisabled = false;
+			break;
+			
+		    case 'gene': 
+			$scope.tsne_status = $scope.gene_color_status;
+			if($scope.geneValues){
+			    $scope.tsneDisabled=false;
+			}
+			else{
+			    $scope.tsneDisabled=true;
+			}
+			break;
+			
+		    case 'samp-dist': 
+			$scope.tsne_status = $scope.euclid_pca_status;
+			if($scope.euclid_pca_status == "Color by Distance"){
+			    $scope.tsneDisabled=false;
+			}
+			else{
+			    $scope.tsneDisabled=true;
+			}
+			break;
+		    }
+		}
+	    }
+	);
+
+		
+
 
 	$scope.$watch(
 	    function($scope) {
@@ -447,6 +575,15 @@ angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocomplete
 			    $scope.violinDisabled=true;
 			}
 		    }
+		    if($scope.tsneColor == 'samp-dist'){
+			$scope.tsne_status = $scope.euclid_pca_status;
+			if($scope.euclid_pca_status == 'Color by Distance'){
+			    $scope.tsneDisabled = false;
+			}
+			else{
+			    $scope.tsneDisabled = true;
+			}
+		    }
 		}
 	    }
 	);
@@ -466,6 +603,16 @@ angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocomplete
 			    $scope.violinDisabled=true;
 			}
 		    }
+		    if($scope.tsneColor == 'gene'){
+			$scope.tsne_status = $scope.gene_color_status;
+			if($scope.geneValues){
+			    $scope.tsneDisabled = false;
+			}
+			else{
+			    $scope.tsneDisabled=true;
+			}
+		    }
+		    
 		}
 	    }
 	);
@@ -551,31 +698,47 @@ angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocomplete
 
 	    $scope.attributeOptions = [
 		{id: 'sampling_region', title: 'Sample Region'},
-		{id: 'sources', title: 'Sample Source'},
-		{id: 'kmean_1', title: 'Kmeans n=1'},
-		{id: 'kmean_2', title: 'Kmeans n=2'},
-		{id: 'kmean_3', title: 'Kmeans n=3'},
-		{id: 'kmean_4', title: 'Kmeans n=4'},
-		{id: 'kmean_5', title: 'Kmeans n=5'},
-		{id: 'kmean_6', title: 'Kmeans n=6'},
-		{id: 'kmean_7', title: 'Kmeans n=7'},
-		{id: 'kmean_8', title: 'Kmeans n=8'},
-		{id: 'kmean_9', title: 'Kmeans n=9'},
-		{id: 'kmean_10', title: 'Kmeans n=10'},
-		{id: 'kmean_11', title: 'Kmeans n=11'},
-		{id: 'kmean_12', title: 'Kmeans n=12'},
-		{id: 'kmean_13', title: 'Kmeans n=13'},
-		{id: 'kmean_14', title: 'Kmeans n=14'},
-		{id: 'kmean_15', title: 'Kmeans n=15'},
-		{id: 'kmean_16', title: 'Kmeans n=16'},
-		{id: 'kmean_17', title: 'Kmeans n=17'},
-		{id: 'kmean_18', title: 'Kmeans n=18'},
-		{id: 'kmean_19', title: 'Kmeans n=19'},
-		{id: 'kmean_20', title: 'Kmeans n=20'},
-		{id: 'louvain_k30', title: 'Louvain k=30'}
+		{id: 'sources', title: 'Sample Source'}// ,
+		// {id: 'kmean_1', title: 'Kmeans n=1'},
+		// {id: 'kmean_2', title: 'Kmeans n=2'},
+		// {id: 'kmean_3', title: 'Kmeans n=3'},
+		// {id: 'kmean_4', title: 'Kmeans n=4'},
+		// {id: 'kmean_5', title: 'Kmeans n=5'},
+		// {id: 'kmean_6', title: 'Kmeans n=6'},
+		// {id: 'kmean_7', title: 'Kmeans n=7'},
+		// {id: 'kmean_8', title: 'Kmeans n=8'},
+		// {id: 'kmean_9', title: 'Kmeans n=9'},
+		// {id: 'kmean_10', title: 'Kmeans n=10'},
+		// {id: 'kmean_11', title: 'Kmeans n=11'},
+		// {id: 'kmean_12', title: 'Kmeans n=12'},
+		// {id: 'kmean_13', title: 'Kmeans n=13'},
+		// {id: 'kmean_14', title: 'Kmeans n=14'},
+		// {id: 'kmean_15', title: 'Kmeans n=15'},
+		// {id: 'kmean_16', title: 'Kmeans n=16'},
+		// {id: 'kmean_17', title: 'Kmeans n=17'},
+		// {id: 'kmean_18', title: 'Kmeans n=18'},
+		// {id: 'kmean_19', title: 'Kmeans n=19'},
+		// {id: 'kmean_20', title: 'Kmeans n=20'},
+		// {id: 'louvain_k30', title: 'Louvain k=30'}
 	    ];
 
-	    $scope.geneTrace = [{}];
+	    $scope.violinTrace = [{}];
+	    $scope.violinLayout = {
+		height: $window.innerHeight / 2,
+		weight: $window.innerWidth,
+		title: '',
+		xaxis: {
+		    type: 'category',
+		    fixedRange: false,
+		    range: [-1,1],
+		    title: ''
+
+		},
+		yaxis: {
+		    title: '',
+		    zeroline: false
+		}
+	    };
 
 	    $scope.getGenes = (val) => {
 		
@@ -637,7 +800,9 @@ angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocomplete
 	    $scope.tsneLayout = {
 		height: $window.innerHeight / 2,
 		width: $window.innerWidth,
-		title: 'Tsne test!'
+		title: '',
+		xaxis: {visible: false},
+		yaxis: {visible: false}
 	    };
 	    
 	    // $scope.violinLayout = {
@@ -667,21 +832,21 @@ angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocomplete
 		.then((traces) => {
 		    $http.get('http://localhost:3000/gene_val/100009600')
 			.then((response) => {
-			    $scope.gene_color_status = "Color by Zglp1";
-			    document.getElementById('geneButton').disabled=false;
 			    $scope.geneValues = response.data;
+			    $scope.gene_color_status = "Color by Zglp1";
+			    // document.getElementById('geneButton').disabled=false;
 			    // $scope.violinClick(response.data);
-			    $scope.violinClick();
+			    // $scope.violinClick();
 			    // if($scope.violinYgroup == 'Gene'){
 			    // 	$scope.violin_status = $scope.gene_color_status;
 			    // 	$scope.violinDisabled=false;
 			    // }
 			});
-		    $scope.traces = traces;
-		    $scope.buildTraces=plotData.buildTraces;
-		    $scope.options = {showLink:false};
+		    $scope.tsneTraces = traces;
+		    // $scope.buildTraces=plotData.buildTraces;
+		    $scope.tsneOptions = {showLink:false};
 		    // function for defining listeners for events emitted by plotly.js
-		    $scope.plotlyEvents = (graph) => {
+		    $scope.tsneEvents = (graph) => {
 			graph.on('plotly_selected', (event) => {
 			    if(event) {
 				$scope.selectedGroup = event;
@@ -749,7 +914,7 @@ angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocomplete
 
 		    if(cnt===reducedFilters.length){
 			$scope.buildTraces($scope.filteredData,$scope.trace_fields)
-			    .then((result) => $scope.traces = result);
+			    .then((result) => $scope.tsneTraces = result);
 		    }
 
 		};
@@ -970,7 +1135,7 @@ angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocomplete
 		    
 		    plotData.buildTraces($scope.filteredData, traceFields)
 			.then((result) => {
-			    $scope.traces=result;
+			    $scope.tsneTraces=result;
 			});
     		};
     	    }]
@@ -1023,7 +1188,7 @@ angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocomplete
 	    link: (scope, element, attrs) => {
 
 		element.on('change', () => {
-		    document.getElementById('pcaButton').disabled = true;
+		    // document.getElementById('pcaButton').disabled = true;
 		    scope.status="Processing...";
 		    delete scope.storage;
 		    var output = "";
@@ -1034,7 +1199,7 @@ angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocomplete
 			    httpRequests.post(scope.url, output, 'text/plain')
 
 				.then((response) =>{
-				    document.getElementById('pcaButton').disabled=false;
+				    // document.getElementById('pcaButton').disabled=false;
 				    scope.status="Color by Distance";
 				    var textLines = response.data.split(/\r\n|\n/);
 				    scope.storage = {};
@@ -1051,85 +1216,54 @@ angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocomplete
 		});
 	    }
 	};
-    }])
+    }]);
 
-    .directive('distButton', [() => {
-	return{
-	    restrict: 'E',
-	    replace: true,
-	    template: `<input type="button"></input>`,
-	    controller: ['plotData', '$q', '$scope', (plotData, $q, $scope) => {
+    // .directive('distButton', [() => {
+    // 	return{
+    // 	    restrict: 'E',
+    // 	    replace: true,
+    // 	    template: `<input type="button"></input>`,
+    // 	    controller: ['plotData', '$q', '$scope', (plotData, $q, $scope) => {
 
-		$scope.euclid_pca_status="Waiting for file";
 
-		// $scope.violinTrace = function(colorHash) {
-		//     var deferred = $q.defer();
-		//     var color_vec = [];
 
-		//     for(i=0; i<$scope.filteredData.length;i++){
-		// 	colorVec.push(parseFloat(colorHash[$scope.filteredData[i]['rnaseq_profile_id']]));
-		//     }
+    // 		// $scope.violinTrace = function(colorHash) {
+    // 		//     var deferred = $q.defer();
+    // 		//     var color_vec = [];
+
+    // 		//     for(i=0; i<$scope.filteredData.length;i++){
+    // 		// 	colorVec.push(parseFloat(colorHash[$scope.filteredData[i]['rnaseq_profile_id']]));
+    // 		//     }
 		   
-		//     if(i==$scope.filteredData.length; i++){
-		// 	deferred.resolve([{
-		// 	    type: 'violin',
-		// 	    x: plotData.unpack($scope.filteredData,'louvain_k30'),
-		// 	    y: $scope.geneValues,
-		// 	    points: 'none',
-		// 	    box: {visible: true},
-		// 	    // line: {color: 'green'},
-		// 	    meanline: {visible: true},
-		// 	    transforms: [{
-		// 		type: 'groupby',
-		// 		groups: plotData.unpack($scope.filteredData,'louvain_k30')
-		// 	    }]
-		// 	}]);
-		//     }
-		//     return deferred.promise;
-		// };
+    // 		//     if(i==$scope.filteredData.length; i++){
+    // 		// 	deferred.resolve([{
+    // 		// 	    type: 'violin',
+    // 		// 	    x: plotData.unpack($scope.filteredData,'louvain_k30'),
+    // 		// 	    y: $scope.geneValues,
+    // 		// 	    points: 'none',
+    // 		// 	    box: {visible: true},
+    // 		// 	    // line: {color: 'green'},
+    // 		// 	    meanline: {visible: true},
+    // 		// 	    transforms: [{
+    // 		// 		type: 'groupby',
+    // 		// 		groups: plotData.unpack($scope.filteredData,'louvain_k30')
+    // 		// 	    }]
+    // 		// 	}]);
+    // 		//     }
+    // 		//     return deferred.promise;
+    // 		// };
 
 
-		// $scope.violinClick = function() {
-		//     $scope.violinTrace()
-		// 	.then((response) => {
-		// 	    $scope.geneTrace = response;
-		// 	});
-		// };
+    // 		// $scope.violinClick = function() {
+    // 		//     $scope.violinTrace()
+    // 		// 	.then((response) => {
+    // 		// 	    $scope.geneTrace = response;
+    // 		// 	});
+    // 		// };
 			
 
-		$scope.markerTrace = function(colorHash)	{
-		    var deferred = $q.defer();
-		    var colorVec = [];
-		    for(i=0; i<$scope.filteredData.length; i++){
-			colorVec.push(parseFloat(colorHash[$scope.filteredData[i]['rnaseq_profile_id']]));
-		    }
 
-		    if(i===$scope.filteredData.length){
-
-			deferred.resolve([{
-			    mode: 'markers',
-			    name: 'test',
-			    x: plotData.unpack($scope.filteredData,'y1'),
-			    y: plotData.unpack($scope.filteredData,'y2'),
-			    text: colorVec,
-			    type: 'scattergl',
-			    hoverinfo: 'text',
-			    marker: {
-				color: colorVec,
-				showscale: true
-			    }
-			}]);
-		    }
-		    return deferred.promise;
-		};
-
-		$scope.markerClick = function(colorHash) {
-		    $scope.markerTrace(colorHash)
-			.then((response) => {
-			    $scope.traces = response;
-			});
-		};
-	    }]
-	};
-    }]);
+    // 	    }]
+    // 	};
+    // }]);
 

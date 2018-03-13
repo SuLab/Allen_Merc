@@ -30,13 +30,13 @@
   </head>
   <body id="top" ng-controller="plotController as ctrl">
     <div>
-      <plotly plotly-data="traces" plotly-layout="tsneLayout" plotly-options="options" plotly-events="plotlyEvents"></plotly>
+      <plotly plotly-data="tsneTraces" plotly-layout="tsneLayout" plotly-options="tsneOptions" plotly-events="tsneEvents"></plotly>
     </div>
     <div>
-      <plotly plotly-data="geneTrace" plotly-layout="violinLayout" plotly-options="violinOptions" ></plotly>
+      <plotly plotly-data="violinTrace" plotly-layout="violinLayout" plotly-options="violinOptions" ></plotly>
     </div>
     <div class="demo">
-      <h2>Color selection</h2>
+      <h4>Metadata Selection</h4>
       <div class="control-group">
 	<!-- <div class="buttons"> -->
 	<!--   <color-button ng-click="ctrl.colorize()" type="button" value="Color!" id="color-button"></color-button> -->
@@ -49,15 +49,30 @@
 	  </ui-select-choices>
 	</ui-select>
 	</br>
-	<color-button type="button" value="Colorize" ng-click="colorize()"></color-button>
+	<!-- <color-button type="button" value="Colorize" ng-click="colorize()"></color-button> -->
 	</br>
-	<h4>Gene Coloring</h4>
+	<h4>Gene Selection</h4>
 	<input type="text" ng-model="geneSelected" placeholder="Color by mouse gene ID or symbol" uib-typeahead="gene as gene.symbol for gene in getGenes($viewValue)" typeahead-loading="loadingGenes" typeahead-no-results="noResults" typeahead-min-length="3" typeahead-template-url="customGeneTemplate.html" typeahead-on-select="selectGene($item,$model,$label)">
 	<i ng-show="loadingGenes" class="glyphicon glyphicon-refresh"></i>
 	<div ng-show="noResults">
 	  <i class="glyphicon glyphicon-remove"></i> No results found
 	</div>
         </br>
+	<h4>Sample Input</h4>
+	<file-input data-storage="euclid_pca_trace" data-status="euclid_pca_status" data-url="http://localhost:3000/euclid_pca" id="euclid-color-input"></file-input>
+	</br>
+
+	<h4>tSNE Controls</h4>
+	Color Values: </br>
+	<div class="btn-group">
+	  <label class="btn btn-primary" ng-model="tsneColor" uib-btn-radio="'metadata'">Metadata</label>
+	  <label class="btn btn-primary" ng-model="tsneColor" uib-btn-radio="'cluster'">Cluster</label>
+	  <label class="btn btn-primary" ng-model="tsneColor" uib-btn-radio="'gene'">Gene Values</label>
+	  <label class="btn btn-primary" ng-model="tsneColor" uib-btn-radio="'samp-dist'">Sample Distance</label>
+	</div>
+	</br>
+	<button id="tsneUpdate" type="button" class="btn btn-primary" ng-click="tsneClick()" ng-disabled="tsneDisabled">{{ tsne_status }}</button>
+	</br>
 
 	<h4>Violin Controls</h4>
 	X-values: </br>
@@ -74,7 +89,7 @@
 	</br>
 	<button id="violinUpdate" type="button" class="btn btn-primary" ng-click="violinClick()" ng-disabled="violinDisabled">{{ violin_status }}</button>
 
-	<dist-button id="geneButton" value="{{ gene_color_status }}" ng-click="markerClick(geneValues)" disabled></dist-button>
+	<!-- <dist-button id="geneButton" value="{{ gene_color_status }}" ng-click="markerClick(geneValues)" disabled></dist-button> -->
 	  
 	<!-- <ui-select multiple ng-model="gene_color" theme="bootstrap" style="min-width: 300px;" title="Choose a gene" typeahead-min-length="5"> -->
 	<!--   <ui-select-match placeholder="Select gene to color by...">{{$item.title}}</ui-select-match> -->
@@ -83,9 +98,9 @@
 	<!--   </ui-select-choices> -->
 	<!-- </ui-select> -->
 	</br>
-	<file-input data-storage="euclid_pca_trace" data-status="euclid_pca_status" data-url="http://localhost:3000/euclid_pca" id="euclid-color-input"></file-input>
+
 	<br>
-	<dist-button id="pcaButton" value="{{ euclid_pca_status }}" ng-click="markerClick(euclid_pca_trace)" disabled></dist-button>
+	<!-- <dist-button id="pcaButton" value="{{ euclid_pca_status }}" ng-click="markerClick(euclid_pca_trace)" disabled></dist-button> -->
       </div>
       <div id="group-list">
 	<form ng-submit="addGroup()" id="groupForm">
