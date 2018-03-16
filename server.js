@@ -81,6 +81,19 @@ app.get('/gene_info/:searchTerm',(req,res) => {
 	});
 });
 
+app.get('/marker_info/:clusterID',(req,res) => {
+    
+    res.set({'Content-Type': 'application/json'});
+
+    db.any("SELECT * FROM gene_markers WHERE cluster = " + req.params.clusterID)
+	.then((data) => {
+	    res.send(data);
+	})
+	.catch((error)  => {
+	    res.send(error);
+	});
+});
+
 app.get('/ols/:resourceIRI/:nodeID',(req, res) => {
 
     var url = 'https://www.ebi.ac.uk/ols/api/ontologies/terms/' + req.params.resourceIRI + '/children/jstree/' + req.params.nodeID;

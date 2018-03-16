@@ -32,6 +32,11 @@
 	<!-- <span ng-bind-html="match.model.markerStr"></span> -->
       </a>
     </script>
+    <style>
+      .selected {
+      outline: 2px solid blue;
+      }
+    </style>
   </head>
   <body id="top" ng-controller="plotController as ctrl">
     <div>
@@ -56,11 +61,27 @@
 	</br>
 	<!-- <color-button type="button" value="Colorize" ng-click="colorize()"></color-button> -->	
 	<h4>Gene Selection</h4>
-	<input type="text" ng-model="geneSelected" placeholder="Search by mouse gene ID or symbol" uib-typeahead="gene as gene.symbol for gene in getGenes($viewValue)" typeahead-loading="loadingGenes" typeahead-no-results="noResults" typeahead-min-length="3" typeahead-template-url="customGeneTemplate.html" typeahead-on-select="selectGene($item,$model,$label)">
+	<input type="text" size="25" ng-model="geneSelected" placeholder="Search by mouse gene ID or symbol" uib-typeahead="gene as gene.symbol for gene in getGenes($viewValue)" typeahead-loading="loadingGenes" typeahead-no-results="noResults" typeahead-min-length="3" typeahead-template-url="customGeneTemplate.html" typeahead-on-select="selectGene($item,$model,$label)">
 	<i ng-show="loadingGenes" class="glyphicon glyphicon-refresh"></i>
 	<div ng-show="noResults">
 	  <i class="glyphicon glyphicon-remove"></i> No results found
 	</div>
+	</br>
+	<div class="form-inline" style="margin-bottom: 20px">
+	  <div class="form-group">
+	    <label for="markerSets"> Select dataset</label>
+	    <select id="markerSets" class="form-control" ng-model="markerID" ng-options="ds for ds in markerSets" ng-change="changeMarkerSet()"></select>
+	  </div>
+	</div>
+	<table ng-table="markerTableParams" class="table table-condensed table-bordered table-striped">
+	  <tr ng-repeat="row in $data" ng-click="selectGene({id: row.gene_id, symbol: row.gene_symbol})" ng-class="{selected: row.gene_id === idGeneSelected}">
+	    <td data-title="'Gene ID'" filter="{gene_id: 'text'}">{{row.gene_id}}</td>
+	    <td data-title="'Gene Symbol'" filter="{gene_symbol: 'text'}">{{row.gene_symbol}}</td>
+	    <td data-title="'P-Value'">{{row.p_val}}</td>
+	    <td data-title="'Cluster #'">{{row.cluster}}</td>
+	    <td data-title="'Rank'" sortable="'rank'">{{row.rank}}</td>
+	  </tr>
+	</table>
         </br></br>
 	<h4>Sample Input</h4>
 	<file-input data-storage="euclid_pca_trace" data-status="euclid_pca_status" data-url="http://localhost:3000/euclid_pca" id="euclid-color-input"></file-input>

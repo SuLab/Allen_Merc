@@ -1,4 +1,4 @@
-angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocompleteMod','ui.bootstrap'])
+angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocompleteMod','ui.bootstrap','ngTable'])
 
     .factory('csvParse', () => {
 	return {
@@ -152,8 +152,30 @@ angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocomplete
     }])
     // Controller for plotly plot
 
-    .controller('plotController',['$http', '$scope', '$log', 'plotData', '$q', '$window', function($http, $scope, $log, plotData, $q, $window){
+    .controller('plotController',['$http', '$scope', '$log', 'plotData', '$q', '$window','NgTableParams', function($http, $scope, $log, plotData, $q, $window,NgTableParams){
 	var vm = this;
+
+	$scope.markerSets = ["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19"];
+
+	$scope.markerTableParams = new NgTableParams({
+	    count: 10
+	},
+	{
+	    counts: []
+	});
+	$scope.markerID = '1';
+	
+	$scope.changeMarkerSet = function(){
+	    $http.get('http://localhost:3000/marker_info/'+$scope.markerID)
+		.then((response) => {
+		    $scope.markerTableParams.settings({
+			dataset: response.data
+		    });
+		});
+	};
+		
+	
+
 
 	// vm.colorize = function() {
 	//     if(this.trace_fields){
@@ -201,6 +223,8 @@ angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocomplete
 	$scope.geneSelected = {'symbol': 'Zglp1', id: '100009600'};
 
 	$scope.selectGene = function(item,model,label){
+	    $scope.idGeneSelected = item.id;
+	    $scope.geneSelected = {id: item.id, symbol: item.symbol};
 	    $scope.gene_color_status="waiting...";
 	    delete $scope.geneValues;
 	    // if($scope.violinYgroup == 'Gene'){
@@ -353,7 +377,7 @@ angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocomplete
 	    };
 
 	    if(data.length / Object.keys(traceNames).length > 100){
-		markerSize = 4;
+		markerSize = 6;
 	    }
 	    else{
 		markerSize = 10;
@@ -804,6 +828,13 @@ angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocomplete
 	    $scope.removeGroup = (id) => {
 		$scope.groupList = $scope.groupList.filter((entry) => { return entry.id !== id;});
 	    };
+	    $http.get('http://localhost:3000/marker_info/'+$scope.markerID)
+		.then((response) => {
+		    $scope.markerTableParams.settings({
+			dataset: response.data
+		    });
+		});
+	    
 	    $scope.addGroup = () => {
 
 		var entry = {
