@@ -15,16 +15,21 @@
     <script src="//angular-ui.github.io/bootstrap/ui-bootstrap-tpls-2.5.0.js"></script>
     <script src="node_modules/ui-select/dist/select.min.js"></script>
     <script src="node_modules/ols-autocomplete/build/ols-autocomplete.js"></script>
+    <script src="https://unpkg.com/ng-table@2.0.2/bundles/ng-table.min.js"></script>
+    <script src="https://unpkg.com/mathjs@4.0.0/dist/math.min.js"></script>
+    <!-- <script src="node_modules/ng-table/index.js"></script>     -->
     <!-- <script src="node_modules/ui-bootstrap/index.js"></script> -->
     <!-- <script src="node_modules/ols-treeview/build/ols-treeview.min.js"></script> -->
     <script src="src/js/app.js"></script>
     <link rel="stylesheet" type="text/css" href="node_modules/ui-select/dist/select.css"/>
     <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.2.1/themes/default/style.min.css" />
+    <link rel="stylesheet"; href="https://unpkg.com/ng-table@2.0.2/bundles/ng-table.min.css">
     <script type="text/ng-template" id="customGeneTemplate.html">
       <a>
 	<span ng-bind-html="match.model.id | uibTypeaheadHighlight:query"></span>, 
-	<span ng-bind-html="match.model.symbol | uibTypeaheadHighlight:query"></span>
+	<span ng-bind-html="match.model.symbol+match.model.markerStr | uibTypeaheadHighlight:query"></span>
+	<!-- <span ng-bind-html="match.model.markerStr"></span> -->
       </a>
     </script>
   </head>
@@ -49,19 +54,17 @@
 	  </ui-select-choices>
 	</ui-select>
 	</br>
-	<!-- <color-button type="button" value="Colorize" ng-click="colorize()"></color-button> -->
-	</br>
+	<!-- <color-button type="button" value="Colorize" ng-click="colorize()"></color-button> -->	
 	<h4>Gene Selection</h4>
-	<input type="text" ng-model="geneSelected" placeholder="Color by mouse gene ID or symbol" uib-typeahead="gene as gene.symbol for gene in getGenes($viewValue)" typeahead-loading="loadingGenes" typeahead-no-results="noResults" typeahead-min-length="3" typeahead-template-url="customGeneTemplate.html" typeahead-on-select="selectGene($item,$model,$label)">
+	<input type="text" ng-model="geneSelected" placeholder="Search by mouse gene ID or symbol" uib-typeahead="gene as gene.symbol for gene in getGenes($viewValue)" typeahead-loading="loadingGenes" typeahead-no-results="noResults" typeahead-min-length="3" typeahead-template-url="customGeneTemplate.html" typeahead-on-select="selectGene($item,$model,$label)">
 	<i ng-show="loadingGenes" class="glyphicon glyphicon-refresh"></i>
 	<div ng-show="noResults">
 	  <i class="glyphicon glyphicon-remove"></i> No results found
 	</div>
-        </br>
+        </br></br>
 	<h4>Sample Input</h4>
 	<file-input data-storage="euclid_pca_trace" data-status="euclid_pca_status" data-url="http://localhost:3000/euclid_pca" id="euclid-color-input"></file-input>
 	</br>
-
 	<h4>tSNE Controls</h4>
 	Color Values: </br>
 	<div class="btn-group">
@@ -71,9 +74,15 @@
 	  <label class="btn btn-primary" ng-model="tsneColor" uib-btn-radio="'samp-dist'">Sample Distance</label>
 	</div>
 	</br>
+	Data Controls:
+	</br>
+	<div class="btn-group">
+	  <label class="btn btn-primary" ng-model="tsneData" uib-btn-radio="'all'">All Data</label>
+	  <label class="btn btn-primary" ng-model="tsneData" uib-btn-radio="'filtered'">Filtered Data</label>
+	</div>
+	</br>
 	<button id="tsneUpdate" type="button" class="btn btn-primary" ng-click="tsneClick()" ng-disabled="tsneDisabled">{{ tsne_status }}</button>
 	</br>
-
 	<h4>Violin Controls</h4>
 	X-values: </br>
 	<div class="btn-group">
@@ -85,6 +94,13 @@
 	<div class="btn-group">
 	  <label class="btn btn-primary" ng-model="violinYgroup" uib-btn-radio="'Gene'">Gene Values</label>
 	  <label class="btn btn-primary" ng-model="violinYgroup" uib-btn-radio="'samp-dist'">Sample Distance</label>
+	</div>
+	</br>
+	Data Controls:
+	</br>
+	<div class="btn-group">
+	  <label class="btn btn-primary" ng-model="violinData" uib-btn-radio="'all'">All Data</label>
+	  <label class="btn btn-primary" ng-model="violinData" uib-btn-radio="'filtered'">Filtered Data</label>
 	</div>
 	</br>
 	<button id="violinUpdate" type="button" class="btn btn-primary" ng-click="violinClick()" ng-disabled="violinDisabled">{{ violin_status }}</button>
@@ -102,17 +118,8 @@
 	<br>
 	<!-- <dist-button id="pcaButton" value="{{ euclid_pca_status }}" ng-click="markerClick(euclid_pca_trace)" disabled></dist-button> -->
       </div>
-      <div id="group-list">
-	<form ng-submit="addGroup()" id="groupForm">
-	  <input type="text" ng-model="inputGroupName" size="30" placeholder="Add selected group">
-	  <input id="addSelectionInput" type="submit" value="Add Group" disabled>
-	</form>
-	<div ng-repeat="x in groupList">
-	  <input type="checkbox" ng-model="x.marked"><span ng-bind="x.groupLabel"></span><input type="button" value="X" ng-click="removeGroup(x.id)">
-	</div>
-      </div>
-      <div>
-      </div>
+
+
     </div>
     <!-- <form filter-input ng-submit="addFilter()" id="filterForm"> -->
     <!--   <input multiple id="filter-select-field" style="width=50%" placeholder="Field" ng-model="field_select" required></input> -->
@@ -121,6 +128,7 @@
     <!--   <input id="filterSubmit" type="submit" value="Add Filter"> -->
     <!-- </form> -->
 
+    <h4>Data Filtering</h4>
 
     <form filter-input ng-submit="addFilter()" id="filterForm">
       <ui-select ng-model="filter_select.field" theme="bootstrap" style="max-width: 140px;" title="Choose an attribute">
@@ -148,8 +156,21 @@
     </form>
 
     <div ng-repeat="x in filterList">
-      <span ng-bind="x.filterLabel"></span><input type="checkbox" ng-model="x.marked"><input type="button" value="X" ng-click="removeFilter(x.id)">
+      <span ng-bind="x.filterLabel"></span><input type="checkbox" ng-model="x.marked" ng-click="filterData()"><input type="button" value="X" ng-click="removeFilter(x.id)">
     </div>
-    <input type="button" value="Apply filters" ng-click="filterData()">
+
+    <!-- <h4>Data Selection</h4> -->
+
+    <!-- <div id="group-list"> -->
+    <!--   <form ng-submit="addGroup()" id="groupForm"> -->
+    <!-- 	<input type="text" ng-model="inputGroupName" size="30" placeholder="Add selected group"> -->
+    <!-- 	<input id="addSelectionInput" type="submit" value="Add Group" disabled> -->
+    <!--   </form> -->
+    <!--   <div ng-repeat="x in groupList"> -->
+    <!-- 	<input type="checkbox" ng-model="x.marked"><span ng-bind="x.groupLabel"></span><input type="button" value="X" ng-click="removeGroup(x.id)"> -->
+    <!--   </div> -->
+    <!-- </div> -->
+    
+    <!-- <input type="button" value="Apply filters" ng-click="filterData()"> -->
   </body>
 </html>

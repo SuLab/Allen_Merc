@@ -88,7 +88,10 @@ angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocomplete
 			x: factory.unpack(data,'y1'),
 			y: factory.unpack(data,'y2'),
 			type: 'scattergl',
-			opacity: 1.0
+			opacity: 1.0,
+			hoveron: 'points',
+			hoverinfo: 'text',
+			text: ''
 		    }]);
 		}
 
@@ -127,7 +130,12 @@ angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocomplete
 					type: 'scattergl',
 					x: factory.unpack(data.filter((line) => {return line.traceName === traceName;}),'y1'),
 					y: factory.unpack(data.filter((line) => {return line.traceName === traceName;}),'y2'),
-					opacity: 1.0
+					opacity: 1.0,
+					hoveron: 'points',
+					hoverinfo: 'name',
+					hoverlabel: {
+					    namelength: 40
+					}
 				    };
 				    resolve(trace);
 				}));
@@ -181,6 +189,9 @@ angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocomplete
 	$scope.tsne_status = "Color by Metadata";
 	$scope.tsneColor = "metadata";
 
+	$scope.tsneData = 'all';
+	$scope.violinData='all';
+
 	$scope.euclid_pca_status="Waiting for file";
 
 	$scope.valueSelectDisabled=true;
@@ -200,7 +211,7 @@ angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocomplete
 	    $http.get('http://localhost:3000/gene_val/'+item.id)
 		.then((response) => {
 		    $scope.gene_color_status = "Color by " + item.symbol;
-		    document.getElementById('geneButton').disabled=false;
+		    // document.getElementById('geneButton').disabled=false;
 		    $scope.geneValues = response.data;
 		    // if($scope.violinYgroup == 'Gene'){
 		    // 	$scope.violin_status = $scope.gene_color_status;
@@ -209,23 +220,26 @@ angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocomplete
 		});
 	};
 
-	$scope.markerTrace = function(colorHash)	{
+	$scope.markerTrace = function(data,colorHash){
 	    var deferred = $q.defer();
 	    var colorVec = [];
-	    for(i=0; i<$scope.filteredData.length; i++){
-		colorVec.push(parseFloat(colorHash[$scope.filteredData[i]['rnaseq_profile_id']]));
+	    for(i=0; i<data.length; i++){
+		colorVec.push(parseFloat(colorHash[data[i]['rnaseq_profile_id']]));
 	    }
 
-	    if(i===$scope.filteredData.length){
+	    if(i===data.length){
 
 		deferred.resolve([{
 		    mode: 'markers',
 		    name: 'test',
-		    x: plotData.unpack($scope.filteredData,'y1'),
-		    y: plotData.unpack($scope.filteredData,'y2'),
+		    x: plotData.unpack(data,'y1'),
+		    y: plotData.unpack(data,'y2'),
 		    text: colorVec,
 		    type: 'scattergl',
 		    hoverinfo: 'text',
+		    hoverlabel: {
+			namelength: 5
+		    },
 		    marker: {
 			color: colorVec,
 			showscale: true
@@ -259,7 +273,7 @@ angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocomplete
 		fields.forEach((entry) => {traceName = traceName.concat(entry," ");});
 		return traceName.substr(0,traceName.length-1);
 	    }
-	    var traceNames = new Set();
+	    var traceNames = {};
 
 	    if(traceObjs.length == 1 && traceObjs[0].id == 'louvain_k30'){
 		louvain = true;
@@ -283,15 +297,17 @@ angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocomplete
 	    // });
 
 	    data.map(line => {
-	    	    traceName = createTraceName(line,traceFields);
-	    	    colorVec.push(colorHash[line.rnaseq_profile_id]);
-	    	    clustVec.push(traceName);
-	    	    // line.traceName = traceName;
-	    	    // line.color = colorHash[line.rnaseq_profile_id];		    
-
-	    	    traceNames.add(traceName);
+	    	traceName = createTraceName(line,traceFields);
+	    	// colorVec.push(colorHash[line.rnaseq_profile_id]);
+	    	// clustVec.push(traceName);
+	    	line.traceName = traceName;
+	    	line.color = colorHash[line.rnaseq_profile_id];		    
+		if(traceNames[traceName]){traceNames[traceName].push(colorHash[line.rnaseq_profile_id]);}else{traceNames[traceName]=[colorHash[line.rnaseq_profile_id]];}
+	    	// traceNames.add(traceName);
 	    });
 
+	    // goodTraces = Object.keys(traceNames).filter((x) => traceNames[x].length > 1).filter((x) => math.var(traceNames[x]) > 1).filter((x) => traceNames[x].filter((y) => y==0).length/traceNames[x].length < 0.75);
+	    goodTraces = Object.keys(traceNames).filter((x) => math.var(traceNames[x]) > 0.01).filter((x) => traceNames[x].filter((y) => y==0).length/traceNames[x].length < 0.75);
 	    // $q.all(nameProcessing)
 	    // 	.then(() => {
 
@@ -325,11 +341,10 @@ angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocomplete
 		xaxis: {
 		    type: 'category',
 		    fixedRange: false,
-		    range: [-2,traceNames.size+1],
+		    // range: [-2,traceNames.size+1],
 		    categoryorder: ((louvain) ? ['array'] : ['trace']),
 		    categoryarray: ((louvain) ? Array.apply(null,Array(traceNames.size)).map(function(_,i) {return (i+1).toString();}) : []),
 		    title: xLab
-
 		},
 		yaxis: {
 		    title: yLab,
@@ -337,24 +352,76 @@ angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocomplete
 		}
 	    };
 
-	    deferred.resolve([{
-		type: 'violin',
-		// x: plotData.unpack(data,'traceName'),
-		// y: plotData.unpack(data,'color'),
-		x: clustVec,
-		y: colorVec,
-		points: 'all',
-		jitter: 0.6,
-		side: 'positive',
-		pointpos: -1,
-		marker: {
-		    symbol: 'circle',
-		    size: 2,
-		    opacity: 0.2
+	    if(data.length / Object.keys(traceNames).length > 100){
+		markerSize = 4;
+	    }
+	    else{
+		markerSize = 10;
+	    }
+	    
+	    if(Object.keys(traceNames).length == goodTraces.length){
+		deferred.resolve([{
+		    type: 'violin',
+		    x: plotData.unpack(data.filter((x) => goodTraces.includes(x.traceName)),'traceName'),
+		    y: plotData.unpack(data.filter((x) => goodTraces.includes(x.traceName)),'color'),
+		    // x: clustVec,
+		    // y: colorVec,
+		    points: 'all',
+		    jitter: 0.4,
+		    side: 'positive',
+		    pointpos: -1,
+		    marker: {
+			symbol: 'circle',
+			size: markerSize,
+			opacity: 0.2
+		    },
+		    meanline: {visible: true},
+		    hoverinfo: 'none',
+		    spanmode: 'hard'
+		}]);
+	    }
+	    else{
+		deferred.resolve([{
+		    type: 'violin',
+		    x: plotData.unpack(data.filter((x) => goodTraces.includes(x.traceName)),'traceName'),
+		    y: plotData.unpack(data.filter((x) => goodTraces.includes(x.traceName)),'color'),
+		    // x: clustVec,
+		    // y: colorVec,
+		    points: 'all',
+		    jitter: 0.6,
+		    side: 'positive',
+		    pointpos: -1,
+		    marker: {
+			symbol: 'circle',
+			size: markerSize,
+			opacity: 0.2
+		    },
+		    meanline: {visible: true},
+		    hoverinfo: 'none',
+		    showlegend: false,
+		    spanmode: 'hard'
+		    // span: [0,math.max(plotData.unpack(data.filter((x) => goodTraces.includes(x.traceName)),'color'))]
 		},
-		meanline: {visible: true},
-		hoverinfo: 'none'
-	    }]);
+		{
+		    type: 'box',
+		    x: plotData.unpack(data.filter((x) => !(goodTraces.includes(x.traceName))),'traceName'),
+		    y: plotData.unpack(data.filter((x) => !(goodTraces.includes(x.traceName))),'color'),
+		    // boxpoints: 'all',
+		    jitter: 0.6,
+		    pointpos: 0,
+		    marker: {
+			symbol: 'circle',
+			size: 10,
+			opacity: 0.2,
+			color: '#1C61A5'
+		    },
+		    // meanline: {visible: true},
+		    hoverinfo: 'none',
+		    showlegend: false,
+		    line: {color: '#1C61A5'},
+		    fillcolor: '#88ACD2'
+		}]);
+	    }
 	    // });
 	    return deferred.promise;
 	};
@@ -415,12 +482,22 @@ angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocomplete
 	    traceArray = (($scope.violinXgroup == 'Cluster') ? [{id: 'louvain_k30', title: 'Louvain k=30'}] : traceSelect);
 	    geneHash = (($scope.violinYgroup == 'Gene') ? $scope.geneValues : $scope.euclid_pca_trace);
 	    yLabel = (($scope.violinYgroup == 'Gene') ? $scope.geneSelected.symbol : 'Sample Dissimilarity');
-	    $scope.makeViolinTrace($scope.filteredData,geneHash,traceArray,yLabel)
-		.then((response) => {
-		    $scope.violinTrace = response;
-		});
+	    switch($scope.violinData){
+	    case 'filtered': 
+		$scope.makeViolinTrace($scope.filteredData,geneHash,traceArray,yLabel)
+		    .then((response) => {
+			$scope.violinTrace = response;
+		    });
+		break;
+	    case 'all':
+		$scope.makeViolinTrace($scope.data,geneHash,traceArray,yLabel)
+		    .then((response) => {
+			$scope.violinTrace = response;
+		    });
+		break;
+	    }
 	};
-
+	
 	$scope.tsneClick = function() {
 	    // if(!$scope.trace_select_fields){
 	    // 	traceSelect = [];
@@ -431,40 +508,88 @@ angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocomplete
 	    switch($scope.tsneColor){
 	    case 'cluster':
 		$scope.tsneLayout.title = 'Louvain k=30';
-		plotData.buildTraces($scope.filteredData,[{id: 'louvain_k30',title: 'Louvain k=30'}])
+		switch($scope.tsneData){
+		case 'filtered': 
+		    plotData.buildTraces($scope.filteredData,[{id: 'louvain_k30',title: 'Louvain k=30'}])
 		    .then((result) => {
 			$scope.tsneTraces=result;
 		    });
+		    break;
+		case 'all':
+		    plotData.buildTraces($scope.data,[{id: 'louvain_k30',title: 'Louvain k=30'}])
+			.then((result) => {
+			    $scope.tsneTraces=result;
+			});
+		    break;
+		}
 		break;
 	    case 'metadata':
 		title = '';
-		$scope.trace_select.fields.forEach((entry) => {title=title.concat(entry.title,' ');});
-		title=title.substr(0,title.length-1);
-		$scope.tsneLayout.title = title;
-		plotData.buildTraces($scope.filteredData,$scope.trace_select.fields)
-		    .then((result) => {
-			$scope.tsneTraces=result;
-		    });
+		if($scope.trace_select.fields){
+		    $scope.trace_select.fields.forEach((entry) => {title=title.concat(entry.title,' ');});
+		    $scope.tsneLayout.title = title.substr(0,title.length-1);;
+		    if($scope.trace_select.fields.length > 0){$scope.tsneLayout.showlegend = true;}
+		}
+		switch($scope.tsneData){
+		case 'filtered': 
+		    plotData.buildTraces($scope.filteredData,$scope.trace_select.fields)
+			.then((result) => {
+			    $scope.tsneTraces=result;
+			});
+		    break;
+		case 'all':
+		    plotData.buildTraces($scope.data,$scope.trace_select.fields)
+			.then((result) => {
+			    $scope.tsneTraces=result;
+			});
+		    break;
+		}
+		// plotData.buildTraces($scope.filteredData,$scope.trace_select.fields)
+		//     .then((result) => {
+		// 	$scope.tsneTraces=result;
+		//     });
 		break;
 	    case 'gene':
-		$scope.markerTrace($scope.geneValues).
-		    then((result) => {
-			$scope.tsneLayout.title = $scope.geneSelected.symbol;
-			$scope.tsneTraces=result;
-		    });
+		switch($scope.tsneData){
+		case 'filtered':
+		    $scope.markerTrace($scope.filteredData,$scope.geneValues).
+			then((result) => {
+			    $scope.tsneLayout.title = $scope.geneSelected.symbol;
+			    $scope.tsneTraces=result;
+			});
+		    break;
+		case 'all':
+		    $scope.markerTrace($scope.data,$scope.geneValues).
+			then((result) => {
+			    $scope.tsneLayout.title = $scope.geneSelected.symbol;
+			    $scope.tsneTraces=result;
+			});
+		    break;
+		}
 		break;
 	    case 'samp-dist':
-		$scope.markerTrace($scope.euclid_pca_trace)
-		    .then((result) => {
-			$scope.tsneLayout.title = 'Sample Dissimilarity';
-			$scope.tsneTraces=result;
-		    });
+		switch($scope.tsneData){
+		case 'filtered':
+		    $scope.markerTrace($scope.filteredData,$scope.euclid_pca_trace)
+			.then((result) => {
+			    $scope.tsneLayout.title = 'Sample Dissimilarity';
+			    $scope.tsneTraces=result;
+			});
+		    break;
+		case 'all':
+		    $scope.markerTrace($scope.data,$scope.euclid_pca_trace)
+			.then((result) => {
+			    $scope.tsneLayout.title = 'Sample Dissimilarity';
+			    $scope.tsneTraces=result;
+			});
+		    break;
+		}
 		break;
-	    }
 	    // $scope.markerTrace(colorHash)
 	    // 	.then((response) => {
 	    // 	    $scope.traces = response;
 	    // 	});
+	    };
 	};
 	
 	$scope.$watch(
@@ -726,7 +851,7 @@ angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocomplete
 	    $scope.violinLayout = {
 		height: $window.innerHeight / 2,
 		weight: $window.innerWidth,
-		title: '',
+		title: 'Violin Plot',
 		xaxis: {
 		    type: 'category',
 		    fixedRange: false,
@@ -746,43 +871,50 @@ angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocomplete
 
 		var deferred = $q.defer();
 
-	    	var createCORSRequest = function(method, url) {
+		$http.get('http://localhost:3000/gene_info/'+val)
+		    .then((response) => { 
+			deferred.resolve(response.data.map((item) => {
+			    return {'id': item.gene_id, 'symbol': item.gene_symbol, 'markerStr': item.marker_of_clusters.length > 0 ? ', '+item.marker_of_clusters: item.marker_of_clusters};
+			}));
+		    });
 
-    	    	    var xhr = new XMLHttpRequest();
-    	    	    if ("withCredentials" in xhr) {
-    	    		xhr.open(method,url,true);
-    	    	    } else if (typeof XDomainRequest != "undefined"){
-    	    		xhr = new XDomainRequest();
-    	    		xhr.open(method,url);
-    	    	    }
-    	    	    else {
-    	    		xhr = null;
-    	    	    }
-    	    	    return xhr;
-    	    	};
+	    	// var createCORSRequest = function(method, url) {
 
-	    	// var xhr = createCORSRequest('GET',"http://mygene.info/v3/query?q=_id:" + val + "*%20OR%20symbol:" + val + "*&species=mouse&size=20");
-	    	var xhr = createCORSRequest('GET',"http://mygene.info/v3/query?q=" +  val + "*&species=mouse&size=20");
+    	    	//     var xhr = new XMLHttpRequest();
+    	    	//     if ("withCredentials" in xhr) {
+    	    	// 	xhr.open(method,url,true);
+    	    	//     } else if (typeof XDomainRequest != "undefined"){
+    	    	// 	xhr = new XDomainRequest();
+    	    	// 	xhr.open(method,url);
+    	    	//     }
+    	    	//     else {
+    	    	// 	xhr = null;
+    	    	//     }
+    	    	//     return xhr;
+    	    	// };
 
-	    	if(!xhr){
-	    	    alert('Your browser does not support this application. We suggest Chrome or Firefox');
-	    	}
+	    	// // var xhr = createCORSRequest('GET',"http://mygene.info/v3/query?q=_id:" + val + "*%20OR%20symbol:" + val + "*&species=mouse&size=20");
+	    	// // var xhr = createCORSRequest('GET',"http://mygene.info/v3/query?q=" +  val + "*&species=mouse&size=20");
 
-	    	xhr.onload = () => {
-	    	    var response = JSON.parse(xhr.response);
+	    	// if(!xhr){
+	    	//     alert('Your browser does not support this application. We suggest Chrome or Firefox');
+	    	// }
 
-		    deferred.resolve(response.hits.map((item) => {
-			// return 'Symbol: ' + item.symbol + ' ID: ' + item._id + ' Name: ' + item.name;
-			return {'id': item._id, 'symbol': item.symbol, 'name': item.name};
-		    }));
+	    	// xhr.onload = () => {
+	    	//     var response = JSON.parse(xhr.response);
+
+		//     deferred.resolve(response.hits.map((item) => {
+		// 	// return 'Symbol: ' + item.symbol + ' ID: ' + item._id + ' Name: ' + item.name;
+		// 	return {'id': item._id, 'symbol': item.symbol, 'name': item.name};
+		//     }));
 		    
-	    	};
+	    	// };
 
-	    	xhr.onerror = () => {
-	    	    alert('Error');
-	    	};
+	    	// xhr.onerror = () => {
+	    	//     alert('Error');
+	    	// };
 
-	    	xhr.send();
+	    	// xhr.send();
 
 		return deferred.promise;
 
@@ -802,7 +934,8 @@ angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocomplete
 		width: $window.innerWidth,
 		title: '',
 		xaxis: {visible: false},
-		yaxis: {visible: false}
+		yaxis: {visible: false},
+		hovermode: 'closest'
 	    };
 	    
 	    // $scope.violinLayout = {
@@ -891,7 +1024,7 @@ angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocomplete
 			    });
 			});
 			
-			return reducedFilters;
+			return reducedFilters.filter((entry) => entry.value.length > 0);
 		    }
 		    
 
@@ -912,22 +1045,21 @@ angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocomplete
 			}
 		    },$scope.data);
 
-		    if(cnt===reducedFilters.length){
-			$scope.buildTraces($scope.filteredData,$scope.trace_fields)
-			    .then((result) => $scope.tsneTraces = result);
-		    }
+		    // if(cnt===reducedFilters.length){
+		    // 	plotData.buildTraces($scope.filteredData,$scope.trace_fields)
+		    // 	    .then((result) => $scope.tsneTraces = result);
+		    // }
 
 		};
 
 		$scope.removeFilter = (id) => {
 		    $scope.filterList = $scope.filterList.filter((entry) => {return entry.id !== id;});
+		    $scope.filterData();
 		};
 
 		$scope.addFilter = () => {
-
 			
 		    valueLabel = '"'+$scope.filter_select.value[0]+'"';
-
 
 		    for(i = 1; i < $scope.filter_select.value.length; i++){
 
@@ -945,7 +1077,8 @@ angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocomplete
 		    };
 
 		    $scope.filterList.push(entry);
-
+		    
+		    $scope.filterData();
 
 		};
 	    }],
@@ -1267,3 +1400,4 @@ angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocomplete
     // 	};
     // }]);
 
+		

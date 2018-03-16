@@ -68,6 +68,18 @@ app.get('/', (req, res) =>  {
     res.sendFile(path.join(__dirname + '/index.html'));
 });
 
+app.get('/gene_info/:searchTerm',(req,res) => {
+
+    res.set({'Content-Type': 'application/json'});
+
+    db.any("select * FROM gene WHERE UPPER(gene_id) LIKE UPPER('" + req.params.searchTerm + "%') OR UPPER(gene_symbol) LIKE UPPER('" + req.params.searchTerm + "%') LIMIT 12")
+	.then((data) => {
+	    res.send(data);
+	})
+	.catch((error) => {
+	    res.send(error);
+	});
+});
 
 app.get('/ols/:resourceIRI/:nodeID',(req, res) => {
 
