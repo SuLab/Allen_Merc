@@ -84,7 +84,7 @@
 	</table>
         </br></br>
 	<h4>Sample Input</h4>
-	<file-input data-storage="euclid_pca_trace" data-status="euclid_pca_status" data-url="http://localhost:3000/euclid_pca" id="euclid-color-input"></file-input>
+	<file-input data-sample="inputtedSample" data-storage="euclid_pca_trace" data-status="euclid_pca_status" data-url="http://localhost:3000/euclid_pca" id="euclid-color-input"></file-input>
 	</br>
 	<h4>tSNE Controls</h4>
 	Color Values: </br>
@@ -123,6 +123,9 @@
 	  <label class="btn btn-primary" ng-model="violinData" uib-btn-radio="'all'">All Data</label>
 	  <label class="btn btn-primary" ng-model="violinData" uib-btn-radio="'filtered'">Filtered Data</label>
 	</div>
+	<button type="button" class="btn btn-danger" ng-model="sampleGeneViolin" uib-btn-checkbox btn-checkbox-true="true" btn-checkbox-false="false" ng-disabled="sampleGeneDisabled">
+	  Sample Gene Value Line
+	</button>
 	</br>
 	<button id="violinUpdate" type="button" class="btn btn-primary" ng-click="violinClick()" ng-disabled="violinDisabled">{{ violin_status }}</button>
 

@@ -164,7 +164,7 @@ angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocomplete
 	    counts: []
 	});
 	$scope.markerID = '1';
-	
+	$scope.sampleGeneViolin=false;
 	$scope.changeMarkerSet = function(){
 	    $http.get('http://localhost:3000/marker_info/'+$scope.markerID)
 		.then((response) => {
@@ -174,7 +174,7 @@ angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocomplete
 		});
 	};
 		
-	
+	$scope.sampleGeneDisabled=true;
 
 
 	// vm.colorize = function() {
@@ -360,20 +360,35 @@ angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocomplete
 
 	    $scope.violinLayout = {
 		height: $window.innerHeight / 2,
-		weight: $window.innerWidth,
+		width: $window.innerWidth,
 		title: title,
 		xaxis: {
 		    type: 'category',
 		    fixedRange: false,
-		    // range: [-2,traceNames.size+1],
-		    categoryorder: ((louvain) ? ['array'] : ['trace']),
-		    categoryarray: ((louvain) ? Array.apply(null,Array(traceNames.size)).map(function(_,i) {return (i+1).toString();}) : []),
+		    range: [-1,Object.keys(traceNames).length+1],
+		    categoryorder: ((louvain) ? 'array' : 'trace'),
+		    categoryarray: ((louvain) ? Array.apply(null,Array(Object.keys(traceNames).length)).map(function(_,i) {return (i+1);}) : []),
 		    title: xLab
 		},
 		yaxis: {
 		    title: yLab,
 		    zeroline: false
-		}
+		},
+		shapes: $scope.sampleGeneViolin ? [{
+		    type: 'line',
+		    // xref: "paper",
+		    // yref: 'paper',
+		    x0: -1,
+		    x1: Object.keys(traceNames).length+100,
+		    y0: $scope.inputtedSample[$scope.geneSelected.id],
+		    y1: $scope.inputtedSample[$scope.geneSelected.id],
+		    line: {
+			color: 'rgba(255,0,0,1)',
+			width: 4,
+			dash: 'dash',
+			opacity: 0.2
+		    }
+		}] : []
 	    };
 
 	    if(data.length / Object.keys(traceNames).length > 100){
@@ -431,7 +446,7 @@ angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocomplete
 		    x: plotData.unpack(data.filter((x) => !(goodTraces.includes(x.traceName))),'traceName'),
 		    y: plotData.unpack(data.filter((x) => !(goodTraces.includes(x.traceName))),'color'),
 		    // boxpoints: 'all',
-		    jitter: 0.6,
+		    jitter: 0.3,
 		    pointpos: 0,
 		    marker: {
 			symbol: 'circle',
@@ -670,14 +685,20 @@ angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocomplete
 		    $scope.violin_status = $scope.gene_color_status;
 		    if($scope.geneValues){
 			$scope.violinDisabled=false;
+			if($scope.inputtedSample){
+			    $scope.sampleGeneDisabled = false;
+			}
 		    }
 		    else{
 			$scope.violinDisabled=true;
+			$scope.sampleGeneDisabled = true;
 		    }
+		    
 		}
 
 		if(newValue != oldValue && newValue == 'samp-dist'){
 		    $scope.violin_status = $scope.euclid_pca_status;
+		    $scope.sampleGeneDisabled = true;
 		    if($scope.euclid_pca_status == "Color by Distance"){
 			$scope.violinDisabled=false;
 		    }
@@ -732,6 +753,12 @@ angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocomplete
 			else{
 			    $scope.tsneDisabled = true;
 			}
+		    }
+		    if($scope.violinYgroup == 'Gene' && $scope.euclid_pca_status == 'Color by Distance'){
+			$scope.sampleGeneDisabled = false;
+		    }
+		    else{
+			$scope.sampleGeneDisabled=true;
 		    }
 		}
 	    }
@@ -881,7 +908,7 @@ angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocomplete
 	    $scope.violinTrace = [{}];
 	    $scope.violinLayout = {
 		height: $window.innerHeight / 2,
-		weight: $window.innerWidth,
+		width: $window.innerWidth,
 		title: 'Violin Plot',
 		xaxis: {
 		    type: 'category',
@@ -1339,14 +1366,15 @@ angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocomplete
  file input directive
  */
 
-    .directive('fileInput', ['csvParse', 'httpRequests', '$log', function(csv, httpRequests, $log) {
+    .directive('fileInput', ['csvParse', 'httpRequests', '$log', function(csv, httpRequests, $log){
 	return{
 	    restrict: 'E',
 	    replace: true,
-	    template: `<input type="file"></input>`,
+	    template: '<input type="file"></input>',
 	    scope: {
 		url: '@',
 		storage: '=',
+		sample: '=',
 		status: '='
 		}, // isolated scope
 	    link: (scope, element, attrs) => {
@@ -1360,6 +1388,13 @@ angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocomplete
 		    if(element[0].files && element[0].files[0]){
 			reader.onload = (event) => {
 			    output = event.target.result;
+			    scope.sample = {};
+			    output.split(/\n/)
+				.map((item) => {
+				    item_parts = item.substr(2,item.length).split(/\t/);
+				    scope.sample[item_parts[0].substr(0,item_parts[0].length-1)] = Math.log(parseFloat(item_parts[1])+1);
+				});
+			    // scope.sample = output;
 			    httpRequests.post(scope.url, output, 'text/plain')
 
 				.then((response) =>{
