@@ -3,29 +3,39 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.4/angular.min.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.0/angular-sanitize.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.2.1/jstree.min.js"></script>
+    <!-- <script src="bower_components/angular-sanitize/angular-sanitize.min.js"></script>     -->
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.2.1/jstree.min.js"></script> -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.0.5/handlebars.min.js"></script>
+    <!-- <script src="bower_components/handlebars/handlebars.min.js"></script> -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/corejs-typeahead/0.11.1/typeahead.bundle.min.js"></script>
-    <!-- <script src="src/js/selectize.min.js"></script> -->
-    <!-- <link rel="stylesheet" type="text/css" href="bower_components/selectize/dist/css/selectize.css"/> -->
-    <!-- <script src="https://cdn.plot.ly/plotly-latest.min.js"></script> -->
-    <script src="bower_components/plotly.js/dist/plotly.js"></script>
+    <!-- <script src="node_modules/corejs-typeahead/dist/typeahead.bundle.min.js"></script> -->
+    <script src="https://ajax.googleapis.com/ajax/libs/angular_material/1.1.0/angular-material.min.js"></script>
+    <!-- <script src="bower_components/angular-material/angular-material.min.js"></script>     -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <!-- <script src="bower_components/plotly.js/dist/plotly.js"></script> -->
     <script src="bower_components/angular-plotly/src/angular-plotly.js"></script>
-    <!-- <script src="bower_components/ui-bootstrap/index.js"></script> -->
     <script src="//angular-ui.github.io/bootstrap/ui-bootstrap-tpls-2.5.0.js"></script>
+    <!-- <script src="node_modules/angular-ui-bootstrap/dist/ui-bootstrap-tpls.js"></script> -->
     <script src="node_modules/ui-select/dist/select.min.js"></script>
     <script src="node_modules/ols-autocomplete/build/ols-autocomplete.js"></script>
     <script src="https://unpkg.com/ng-table@2.0.2/bundles/ng-table.min.js"></script>
+    <!-- <script src="node_modules/ng-table/bundles/ng-table.min.js"></script>     -->
     <script src="https://unpkg.com/mathjs@4.0.0/dist/math.min.js"></script>
-    <!-- <script src="node_modules/ng-table/index.js"></script>     -->
-    <!-- <script src="node_modules/ui-bootstrap/index.js"></script> -->
+    <!-- <script src="bower_components/mathjs/dist/math.min.js"></script>     -->
     <!-- <script src="node_modules/ols-treeview/build/ols-treeview.min.js"></script> -->
     <script src="src/js/app.js"></script>
+    <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/angular_material/1.1.0/angular-material.min.css">
+    <!-- <link rel="stylesheet" href="bower_components/angular-material/angular-material.min.css"> -->
     <link rel="stylesheet" type="text/css" href="node_modules/ui-select/dist/select.css"/>
     <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.2.1/themes/default/style.min.css" />
+    <!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.2.1/themes/default/style.min.css" /> -->
     <link rel="stylesheet"; href="https://unpkg.com/ng-table@2.0.2/bundles/ng-table.min.css">
+    <!-- <link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.css"> -->
+    <link rel="stylesheet" href="node_modules/angular-ui-bootstrap/dist/ui-bootstrap-csp.css">
+    <!-- <link rel="stylesheet"; href="node_modules/ng-table/bundles/ng-table.min.css"> -->
+    <!-- <script src="bower_components/jquery/dist/jquery.min.js"></script> -->    
     <script type="text/ng-template" id="customGeneTemplate.html">
+      <!-- <script src="bower_components/angular/angular.min.js"></script>     -->
       <a>
 	<span ng-bind-html="match.model.id | uibTypeaheadHighlight:query"></span>, 
 	<span ng-bind-html="match.model.symbol+match.model.markerStr | uibTypeaheadHighlight:query"></span>
