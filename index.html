@@ -7,11 +7,11 @@
     <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.2.1/jstree.min.js"></script> -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.0.5/handlebars.min.js"></script>
     <!-- <script src="bower_components/handlebars/handlebars.min.js"></script> -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/corejs-typeahead/0.11.1/typeahead.bundle.min.js"></script>
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/corejs-typeahead/0.11.1/typeahead.bundle.min.js"></script> -->
     <!-- <script src="node_modules/corejs-typeahead/dist/typeahead.bundle.min.js"></script> -->
-    <script src="https://ajax.googleapis.com/ajax/libs/angular_material/1.1.0/angular-material.min.js"></script>
+    <!-- <script src="https://ajax.googleapis.com/ajax/libs/angular_material/1.1.0/angular-material.min.js"></script> -->
     <!-- <script src="bower_components/angular-material/angular-material.min.js"></script>     -->
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-1.33.0.min.js"></script>
     <!-- <script src="bower_components/plotly.js/dist/plotly.js"></script> -->
     <script src="bower_components/angular-plotly/src/angular-plotly.js"></script>
     <script src="//angular-ui.github.io/bootstrap/ui-bootstrap-tpls-2.5.0.js"></script>
@@ -24,10 +24,11 @@
     <!-- <script src="bower_components/mathjs/dist/math.min.js"></script>     -->
     <!-- <script src="node_modules/ols-treeview/build/ols-treeview.min.js"></script> -->
     <script src="src/js/app.js"></script>
-    <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/angular_material/1.1.0/angular-material.min.css">
+    <!-- <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/angular_material/1.1.0/angular-material.min.css"> -->
     <!-- <link rel="stylesheet" href="bower_components/angular-material/angular-material.min.css"> -->
     <link rel="stylesheet" type="text/css" href="node_modules/ui-select/dist/select.css"/>
-    <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.css">
+    <!-- <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.css"> -->
+    <link href="//netdna.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
     <!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.2.1/themes/default/style.min.css" /> -->
     <link rel="stylesheet"; href="https://unpkg.com/ng-table@2.0.2/bundles/ng-table.min.css">
     <!-- <link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.css"> -->
@@ -71,8 +72,9 @@
 	</br>
 	<!-- <color-button type="button" value="Colorize" ng-click="colorize()"></color-button> -->	
 	<h4>Gene Selection</h4>
-	<input type="text" size="25" ng-model="geneSelected" placeholder="Search by mouse gene ID or symbol" uib-typeahead="gene as gene.symbol for gene in getGenes($viewValue)" typeahead-loading="loadingGenes" typeahead-no-results="noResults" typeahead-min-length="3" typeahead-template-url="customGeneTemplate.html" typeahead-on-select="selectGene($item,$model,$label)">
+	<input type="text" size="25" ng-model="geneSelected" placeholder="Search by mouse gene ID or symbol" uib-typeahead="gene as gene.symbol for gene in getGenes($viewValue)" typeahead-loading="loadingGenes" typeahead-no-results="noResults" typeahead-min-length="3" typeahead-on-select="selectGene($item,$model,$label)">
 	<i ng-show="loadingGenes" class="glyphicon glyphicon-refresh"></i>
+	<!-- typeahead-template-url="customGeneTemplate.html" -->
 	<div ng-show="noResults">
 	  <i class="glyphicon glyphicon-remove"></i> No results found
 	</div>
@@ -95,6 +97,16 @@
         </br></br>
 	<h4>Sample Input</h4>
 	<file-input data-sample="inputtedSample" data-storage="euclid_pca_trace" data-status="euclid_pca_status" data-url="http://localhost:3000/euclid_pca" id="euclid-color-input"></file-input>
+	</br>
+	<table ng-table="markerTableParams" class="table table-condensed table-bordered table-striped">
+	  <tr ng-repeat="row in $data" ng-click="selectGene({id: row.gene_id, symbol: row.gene_symbol})">
+	    <td data-title="'Gene ID'" filter="{gene_id: 'text'}">{{row.gene_id}}</td>
+	    <td data-title="'Gene Symbol'" filter="{gene_symbol: 'text'}">{{row.gene_symbol}}</td>
+	    <td data-title="'P-Value'">{{row.p_val}}</td>
+	    <td data-title="'Cluster #'">{{row.cluster}}</td>
+	    <td data-title="'Rank'" sortable="'rank'">{{row.rank}}</td>
+	  </tr>
+	</table>
 	</br>
 	<h4>tSNE Controls</h4>
 	Color Values: </br>
