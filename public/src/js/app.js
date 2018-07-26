@@ -355,8 +355,8 @@ angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocomplete
 		
 		i = $scope.markerSets[j];
 
-		valsInCluster = $scope.data.filter((x) => {return x.louvain_k30 == i;}).map((x) => x.rnaseq_profile_id).map((x) => $scope.euclid_pca_trace.x);
-		valsOutCluster = $scope.data.filter((x) => {return x.louvain_k30 != i;}).map((x) => x.rnaseq_profile_id).map((x) => $scope.euclid_pca_trace.x);
+		valsInCluster = $scope.data.filter((x) => {return x.louvain_k30 == i;}).map((x) => x.rnaseq_profile_id).map((x) => $scope.euclid_pca_trace[x]);
+		valsOutCluster = $scope.data.filter((x) => {return x.louvain_k30 != i;}).map((x) => x.rnaseq_profile_id).map((x) => $scope.euclid_pca_trace[x]);
 
 		test = mannWhitney.test(valsInCluster,valsOutCluster,'less');
 		if(test.p < 0.01/$scope.markerSets.length){
@@ -1149,7 +1149,7 @@ angular.module("mercatorApp",['plotly','ui.select','ngSanitize','olsAutocomplete
 		$http.get('http://localhost:3000/gene_info/'+val)
 		    .then((response) => { 
 			deferred.resolve(response.data.map((item) => {
-			    return {'id': item.gene_id, 'symbol': item.gene_symbol, 'markerStr': item.marker_of_clusters.length > 0 ? ', '+item.marker_of_clusters: item.marker_of_clusters};
+			    return {'id': item.gene_id, 'symbol': item.gene_symbol, 'markerStr': item.marker_of_clusters.length > 0 ? ', Marker for: '+item.marker_of_clusters: item.marker_of_clusters};
 			}));
 		    });
 
